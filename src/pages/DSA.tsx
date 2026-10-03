@@ -18,6 +18,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import type { DSAProblem, Difficulty, RevisionConfidence } from '@/types';
+import { parseDsaFile } from '@/lib/dsaImport';
 import { useStore } from '@/store';
 import {
   Badge,
@@ -814,7 +815,6 @@ export default function DSA() {
           const reader = new FileReader();
           reader.onload = () => {
             try {
-              const { parseDsaFile } = require('@/lib/dsaImport') as typeof import('@/lib/dsaImport');
               const { rows, errors } = parseDsaFile(file.name, String(reader.result));
               if (!rows.length) {
                 toast.push(errors.join(' ') || 'No problems found in that file', { tone: 'error' });

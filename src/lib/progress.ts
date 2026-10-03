@@ -76,7 +76,8 @@ export function subjectStats(subject: Subject, topics: Topic[], sessions: StudyS
   const started = leaves.filter((t) => topicProgress(t, topics) > 0).length;
   const subs = sessions.filter((s) => s.subjectId === subject.id);
   const minutes = subs.reduce((a, s) => a + s.minutes, 0);
-  const last = subs.map((s) => s.date).sort().at(-1);
+  const sessionDates = subs.map((s) => s.date).sort();
+  const last = sessionDates.length ? sessionDates[sessionDates.length - 1] : undefined;
   const nextTopic =
     leaves.find((t) => topicProgress(t, topics) > 0 && topicProgress(t, topics) < 100) ??
     leaves.find((t) => topicProgress(t, topics) === 0);
