@@ -35,8 +35,8 @@ import type {
   WeeklyReview,
 } from '@/types';
 import { createInitialData } from '@/data/seed';
-import { idbStorage } from '@/lib/idbStorage';
-import { REVISION_INTERVALS } from '@/lib/constants';
+import { cloudStorage } from '@/services/cloudStorage';
+import { DATA_VERSION, REVISION_INTERVALS } from '@/lib/constants';
 import type { DsaImportResult, ImportedDsaRow } from '@/lib/dsaImport';
 import { migrateV1toV2 } from '@/lib/migration';
 import { addDaysISO, nowISO, todayISO, uid } from '@/lib/utils';
@@ -45,7 +45,7 @@ import { addDaysISO, nowISO, todayISO, uid } from '@/lib/utils';
 // `version`, so existing data is found, backed up and migrated rather than lost.
 const STORAGE_KEY = 'preptrack:v1';
 const BACKUP_KEY = 'preptrack:backup:pre-migration';
-export const DATA_VERSION = 2;
+export { DATA_VERSION };
 
 type LifecycleKey = 'learned' | 'practiced' | 'canExplain' | 'applied';
 type ProblemFlag = 'attempted' | 'solved' | 'understood' | 'independent' | 'mastered' | 'needsRevision' | 'hintUsed' | 'editorialUsed' | 'solutionWatched';
@@ -1388,7 +1388,7 @@ export const useStore = create<Store>()(
     },
     {
       name: STORAGE_KEY,
-      storage: createJSONStorage(() => idbStorage),
+      storage: createJSONStorage(() => cloudStorage),
       version: DATA_VERSION,
       partialize: (state) => pickData(state),
       migrate: (persisted, version) => {

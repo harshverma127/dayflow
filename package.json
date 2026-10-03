@@ -8,9 +8,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "check:schema": "node scripts/check-schema-sync.cjs",
+    "test:mapping": "esbuild scripts/test-mapping.mjs --bundle --platform=node --format=esm --alias:@=./src --outfile=node_modules/.cache/mapping-test.mjs --log-level=error && node node_modules/.cache/mapping-test.mjs",
+    "probe:rlS": "node scripts/probe-rls.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.451.0",

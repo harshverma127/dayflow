@@ -333,6 +333,14 @@ export const SUBJECT_COLORS = [
   '#9a7f88',
 ];
 
+/**
+ * Shape version of the persisted workspace.
+ *
+ * Lives here rather than in src/store.ts so the cloud storage adapter can
+ * import it without creating a module cycle (store -> adapter -> store).
+ */
+export const DATA_VERSION = 2;
+
 export const HEATMAP_LEVELS = [
   { label: 'No study', className: 'bg-surface-muted ring-1 ring-inset ring-border' },
   { label: 'Under 1 hour', className: 'bg-accent-sage/25' },

@@ -20,3 +20,5 @@ tsconfig.tsbuildinfo
 .freebuff/
 .vercel
 .env*
+# The committed template must stay tracked; only real env files are ignored.
+!.env.example

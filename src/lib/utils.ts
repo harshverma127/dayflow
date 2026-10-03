@@ -4,12 +4,30 @@ export function cn(...args: ClassValue[]): string {
   return clsx(args);
 }
 
-let counter = 0;
-export function uid(prefix = 'id'): string {
-  counter += 1;
-  return `${prefix}_${Date.now().toString(36)}_${counter.toString(36)}_${Math.random()
-    .toString(36)
-    .slice(2, 7)}`;
+// IDs are UUIDs because every synced table uses a `uuid` primary key
+// (see supabase/migrations/*_initial_dayflow_schema.sql). The historical
+// `prefix_timestamp_counter_random` shape is still readable — `ensureUuidIds`
+// in src/services/localData.ts remaps legacy IDs when local data is imported
+// to the cloud — but anything created from now on is a real UUID.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** True when `id` can be stored in a `uuid` column without conversion. */
+export function isUuid(id: string): boolean {
+  return UUID_RE.test(id);
+}
+
+/** Generates a RFC-4122 v4 UUID, with a non-crypto fallback. */
+export function newUuid(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  const hex = '0123456789abcdef';
+  const pick = (n: number) =>
+    Array.from({ length: n }, () => hex[Math.floor(Math.random() * 16)]).join('');
+  return `${pick(8)}-${pick(4)}-4${pick(3)}-${hex[8 + Math.floor(Math.random() * 4)]}${pick(3)}-${pick(12)}`;
+}
+
+export function uid(_prefix = 'id'): string {
+  return newUuid();
 }
 
 export function todayISO(): string {

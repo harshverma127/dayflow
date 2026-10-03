@@ -1,13 +1,16 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@/App';
+import { AuthProvider } from '@/services/AuthProvider';
 import '@/index.css';
 
-// PrepTrack starts from an empty workspace. All data comes from the persisted
-// store (IndexedDB, falling back to localStorage) or from user action — there
-// is no seeding step here.
+// Dayflow starts from an empty workspace. Supabase is the source of truth once
+// you are signed in; before that (or while offline) the IndexedDB cache backs
+// the store. Nothing here seeds sample content.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 );

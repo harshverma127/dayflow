@@ -6,6 +6,8 @@ import { Badge, Button, Card, CardHeader, ConfirmDialog, Field, Input, Select, u
 import { MetricBar, PageHeader, ToggleRow } from '@/components/common';
 import { bucketProgress, overallProgress } from '@/lib/progress';
 import { download, formatDate, toCSV, todayISO } from '@/lib/utils';
+import { countEntities, ensureUuidIds, validateLocalData } from '@/services/localData';
+import { createInitialData } from '@/data/seed';
 
 const WEIGHT_KEYS = [
   { key: 'dsa', label: 'DSA' },
@@ -22,6 +24,7 @@ export default function Settings() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [pendingImport, setPendingImport] = useState<AppData | null>(null);
   const s = store.settings;
   const buckets = bucketProgress(store);
 
@@ -83,53 +86,66 @@ export default function Settings() {
   const importFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
+      let parsed: Partial<AppData> | null = null;
       try {
-        const parsed = JSON.parse(String(reader.result)) as Partial<AppData>;
+        parsed = JSON.parse(String(reader.result)) as Partial<AppData>;
         if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.subjects) || !parsed.settings) {
           throw new Error('Invalid backup');
         }
-        const merged: AppData = {
-          version: parsed.version ?? 1,
-          subjects: parsed.subjects ?? [],
-          topics: parsed.topics ?? [],
-          tasks: parsed.tasks ?? [],
-          sessions: parsed.sessions ?? [],
-          dsaSessions: parsed.dsaSessions ?? [],
-          dsaModules: parsed.dsaModules ?? [],
-          dsaTopics: parsed.dsaTopics ?? [],
-          dsaPatterns: parsed.dsaPatterns ?? [],
-          dsaProblems: parsed.dsaProblems ?? [],
-          dsaSource: parsed.dsaSource ?? store.dsaSource,
-          revisions: parsed.revisions ?? [],
-          notes: parsed.notes ?? [],
-          projects: parsed.projects ?? [],
-          interviewQuestions: parsed.interviewQuestions ?? [],
-          stories: parsed.stories ?? [],
-          mocks: parsed.mocks ?? [],
-          applications: parsed.applications ?? [],
-          companies: parsed.companies ?? [],
-          goals: parsed.goals ?? [],
-          roadmap: parsed.roadmap ?? [],
-          journal: parsed.journal ?? [],
-          reviews: parsed.reviews ?? [],
-          activities: parsed.activities ?? [],
-          settings: { ...store.settings, ...parsed.settings },
-        };
-        store.importData(merged);
-        toast.push('Backup restored successfully', { tone: 'success' });
       } catch {
-        toast.push('Could not read that file — is it a PrepTrack JSON backup?', { tone: 'error' });
+        toast.push('Could not read that file — is it a Dayflow JSON backup?', { tone: 'error' });
+        return;
       }
+
+      // Restoring replaces the current workspace, so validate first and show a
+      // preview before anything is written (spec §16).
+      const validation = validateLocalData(parsed);
+      if (!validation.ok) {
+        toast.push(validation.errors.join(' ') || 'That file is not a Dayflow backup.', { tone: 'error' });
+        return;
+      }
+
+      const merged: AppData = {
+        ...createInitialData(),
+        ...parsed,
+        version: parsed.version ?? store.version,
+        dsaSource: parsed.dsaSource ?? store.dsaSource,
+        settings: { ...store.settings, ...(parsed.settings ?? {}) },
+      } as AppData;
+      setPendingImport(merged);
     };
     reader.onerror = () => toast.push('Failed to read the file', { tone: 'error' });
     reader.readAsText(file);
   };
 
+  const confirmImport = () => {
+    if (!pendingImport) return;
+    // Legacy ids from an older build are not UUIDs, so they are remapped here
+    // before the records reach Supabase.
+    const { data: remapped, remapped: changed } = ensureUuidIds(pendingImport);
+    store.importData(remapped);
+    const counts = countEntities(remapped);
+    const total = Object.entries(counts).reduce(
+      (n, [k, v]) => (k === 'checklistItems' ? n : n + v),
+      0,
+    );
+    toast.push(
+      `Restored ${total} record${total === 1 ? '' : 's'}` + (changed > 0 ? ` · ${changed} ids upgraded` : ''),
+      { tone: 'success' },
+    );
+    setPendingImport(null);
+  };
+
   const totalWeight = WEIGHT_KEYS.reduce((a, w) => a + s.weights[w.key], 0);
+
+  const pendingCounts = pendingImport ? countEntities(pendingImport) : null;
+  const pendingTotal = pendingCounts
+    ? Object.entries(pendingCounts).reduce((n, [k, v]) => (k === 'checklistItems' ? n : n + v), 0)
+    : 0;
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Settings" description="Personalise the tracker — everything is stored locally in your browser" meta={<Badge tone="slate">data version {store.version}</Badge>} />
+      <PageHeader title="Settings" description="Personalise the tracker — your data is synced to your Dayflow account" meta={<Badge tone="slate">data version {store.version}</Badge>} />
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
@@ -313,16 +329,39 @@ export default function Settings() {
 
       <ConfirmDialog
         open={confirmReset}
-        title="Reset to seeded roadmap?"
-        message="This replaces everything with the default 8-week roadmap, sample problems and projects. Your current data will be replaced."
+        title="Reset everything?"
+        message="This empties your workspace back to a clean account — no subjects, problems, projects or activity. Export a backup first if you want to keep anything."
         confirmLabel="Reset"
         destructive
         onCancel={() => setConfirmReset(false)}
         onConfirm={() => {
           store.resetData();
           setConfirmReset(false);
-          toast.push('Data reset to the seeded roadmap', { tone: 'success' });
+          toast.push('Workspace reset', { tone: 'success' });
         }}
+      />
+
+      <ConfirmDialog
+        open={pendingImport !== null}
+        title="Restore this backup?"
+        message={
+          pendingCounts ? (
+            <span>
+              This replaces your current workspace with{' '}
+              <strong className="text-content">{pendingTotal} records</strong> from the file
+              {pendingCounts.subjects > 0 && <> · {pendingCounts.subjects} subjects</>}
+              {pendingCounts.dsaProblems > 0 && <> · {pendingCounts.dsaProblems} DSA problems</>}
+              {pendingCounts.sessions > 0 && <> · {pendingCounts.sessions} study sessions</>}. Everything is attached to your
+              account and synced to the cloud.
+            </span>
+          ) : (
+            ''
+          )
+        }
+        confirmLabel="Restore backup"
+        destructive={false}
+        onCancel={() => setPendingImport(null)}
+        onConfirm={confirmImport}
       />
 
       <ConfirmDialog

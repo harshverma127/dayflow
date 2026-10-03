@@ -5,7 +5,8 @@ SWE internships, campus interviews, big-tech-style coding rounds and final place
 
 Every number, bar and chart is **derived from real work you log** — there are no fake sliders or
 manually typed percentages. Progress comes from checked checklist items, completed subtopics,
-solved problems and project checklists. Everything persists in your browser and survives refreshes.
+solved problems and project checklists. Everything persists in your browser and survives refreshes, and — once you sign in — syncs to your
+Supabase account so it follows you across devices.
 
 Built to feel like a calm, premium study planner rather than a blue SaaS admin panel: soft ivory /
 warm-charcoal surfaces, muted sage / lavender / sand accents, generous spacing and Linear-Notion-like
@@ -17,8 +18,33 @@ cleanliness.
 
 ```bash
 npm install
+cp .env.example .env.local   # add your Supabase URL + publishable key
 npm run dev          # http://localhost:5183
 ```
+
+The app also runs without those variables — it shows a setup panel and offers a local-only mode
+against the existing IndexedDB workspace.
+
+### Supabase (auth + cloud sync)
+
+Dayflow is still frontend-only: Vercel serves the static build, React talks to Supabase Auth and
+Supabase Postgres directly. There is no Node/Express/Spring server.
+
+1. Run `supabase/migrations/20260101000000_initial_dayflow_schema.sql` in the Supabase SQL Editor.
+2. Put the Project URL and **publishable** key in `.env.local`.
+3. `supabase/README.md` has the full runbook, and `supabase/verify_rls.sql` checks that every table
+   has RLS on with owner-only policies.
+
+Architecture notes:
+
+- `src/services/supabase.ts` — the only place a Supabase client is created, plus error translation.
+- `src/services/auth.ts` / `AuthProvider.tsx` — session lifecycle; the protected app never renders
+  before the session is known.
+- `src/services/schema.ts` — declarative mapping between `AppData` and the tables.
+- `src/services/cloud.ts` — parallel table reads with nested stitching, and snapshot diffing for writes.
+- `src/services/cloudStorage.ts` — the zustand persistence adapter: Supabase when signed in,
+  IndexedDB as cache and offline queue otherwise.
+- `src/services/localData.ts` — IndexedDB → cloud import, including legacy-id → UUID remapping.
 
 Other scripts:
 

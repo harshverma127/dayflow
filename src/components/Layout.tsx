@@ -12,6 +12,7 @@ import {
   FolderGit2,
   Home,
   Library,
+  LogOut,
   Map as MapIcon,
   Menu,
   MessagesSquare,
@@ -36,6 +37,8 @@ import { notifications } from '@/lib/progress';
 import { CommandPalette } from '@/components/CommandPalette';
 import { QuickAdd } from '@/components/QuickAdd';
 import { TimerWidget } from '@/components/TimerWidget';
+import { useAuth } from '@/services/AuthProvider';
+import { signOut } from '@/services/auth';
 
 export interface NavItem {
   to: string;
@@ -309,6 +312,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const collapsed = collapsedPref;
   const toggleTheme = () => updateSettings({ theme: theme === 'dark' ? 'light' : 'dark' });
 
+  const { user, localMode } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+  const account = user;
+
+  async function handleSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    const error = await signOut();
+    if (error) {
+      setSigningOut(false);
+      toast.push(error.message, { tone: 'error' });
+    }
+  }
+
   return (
     <div className="min-h-screen">
       {/* Desktop / tablet sidebar */}
@@ -323,6 +340,29 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <SidebarNav collapsed={collapsed} />
         <div className="border-t px-2 py-2">
+          {account && !localMode && (
+            <>
+              {!collapsed && account.email && (
+                <p className="truncate px-2.5 pb-1.5 text-[11px] text-content-faint" title={account.email}>
+                  {account.email}
+                </p>
+              )}
+              <Tooltip label={collapsed ? account.email ?? 'Account' : ''}>
+              <button
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-content-faint transition-colors hover:bg-surface-raised hover:text-content disabled:opacity-60',
+                  collapsed && 'justify-center px-0',
+                )}
+                aria-label="Sign out"
+              >
+                <LogOut size={17} />
+                {!collapsed && <span>{signingOut ? 'Signing out…' : 'Sign out'}</span>}
+              </button>
+              </Tooltip>
+            </>
+          )}
           <Tooltip label={collapsed ? 'Expand sidebar' : ''}>
             <button
               onClick={() => updateSettings({ sidebarCollapsed: !collapsedPref })}
