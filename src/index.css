@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   PrepTrack theme tokens.
+
+   A soft, warm, personal-productivity palette: ivory paper in light mode and a
+   warm charcoal in dark mode. `brand` is an ink tone rather than a colour, so
+   the chrome stays calm and the accents below carry the meaning.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --surface: 255 253 250;
+  --surface-muted: 247 243 236;
+  --surface-raised: 255 255 255;
+  --border: 231 224 213;
+  --content: 41 37 35;
+  --content-muted: 112 105 97;
+  --content-faint: 160 152 141;
+  --brand: 45 42 39;
+  --brand-fg: 253 251 248;
+
+  --accent-sage: 88 122 96;
+  --accent-lavender: 120 112 158;
+  --accent-peach: 178 116 74;
+  --accent-clay: 170 84 78;
+  --accent-sky: 84 122 156;
+  --accent-sand: 158 126 72;
+  --accent-rose: 168 96 112;
+
+  color-scheme: light;
+}
+
+.dark {
+  --surface: 26 24 22;
+  --surface-muted: 19 18 16;
+  --surface-raised: 34 31 29;
+  --border: 57 52 48;
+  --content: 235 229 222;
+  --content-muted: 165 157 148;
+  --content-faint: 122 114 106;
+  --brand: 238 232 224;
+  --brand-fg: 30 28 26;
+
+  --accent-sage: 150 184 156;
+  --accent-lavender: 178 172 212;
+  --accent-peach: 224 172 134;
+  --accent-clay: 220 148 140;
+  --accent-sky: 146 180 208;
+  --accent-sand: 208 184 140;
+  --accent-rose: 220 150 166;
+
+  color-scheme: dark;
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(var(--surface-muted));
+  color: rgb(var(--content));
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-content;
+    letter-spacing: -0.011em;
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--content) / 0.55);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  ::selection {
+    background: rgb(var(--accent-sand) / 0.25);
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border bg-surface shadow-card;
+  }
+  .panel {
+    @apply rounded-xl border bg-surface;
+  }
+  .quiet {
+    @apply rounded-xl border border-dashed bg-surface-muted/50;
+  }
+  .input-base {
+    @apply w-full rounded-xl border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-faint
+           focus:border-content/30 focus:outline-none focus:ring-2 focus:ring-content/10 disabled:opacity-50;
+  }
+  .label-base {
+    @apply mb-1.5 block text-xs font-medium text-content-muted;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--content-faint) / 0.3);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--content-faint) / 0.55);
+  background-clip: content-box;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
